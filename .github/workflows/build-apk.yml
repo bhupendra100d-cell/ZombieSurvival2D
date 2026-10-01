@@ -1,0 +1,45 @@
+name: Build Zombie Survival 2D APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Unzip game project
+        run: |
+          mkdir -p project
+          unzip -q ZombieSurvival2D_Project.zip -d project
+          echo "Project files:"
+          find project -maxdepth 3 -type f | head -100
+
+      - name: Find Android project
+        run: |
+          PROJECT_DIR=$(dirname "$(find project -name settings.gradle -print -quit)")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZombieSurvival2D-APK
+          path: "${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk"
+          if-no-files-found: error
